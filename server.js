@@ -5,12 +5,16 @@ const morgan = require('morgan')
 const cors = require('cors')
 
 const { readdirSync } = require('fs')
+const corsOptions = {
+  origin: 'https://ropa-front.vercel.app', 
+  optionsSuccessStatus: 200
+};
+
 
 app.use(morgan('dev'))
 app.use(express.json())
-app.use(cors({
-  origin: 'https://vercel.app'
-}))
+app.use(cors(corsOptions))
+
 
 // Auto-load all route files from ./routes
 readdirSync('./routes')
