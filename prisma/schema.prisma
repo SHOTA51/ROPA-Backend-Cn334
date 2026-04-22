@@ -1,0 +1,259 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "mysql"
+    url      = env("DATABASE_URL")
+}
+
+// =====================
+// Enums
+// =====================
+
+enum UserStatus {
+    ONLINE
+    OFFLINE
+}
+
+enum ActivityType {
+    CREATE
+    UPDATE
+    DELETE
+    LOGIN
+    LOGOUT
+}
+
+enum Sensitivity {
+    LOW
+    MEDIUM
+    HIGH
+}
+
+enum ImportStatus {
+    PENDING
+    PROCESSING
+    COMPLETED
+    FAILED
+}
+
+enum LegalBasis {
+    CONSENT
+    CONTRACT
+    LEGAL_OBLIGATION
+    VITAL_INTEREST
+    PUBLIC_TASK
+    LEGITIMATE_INTEREST
+}
+
+enum RiskLevel {
+    LOW
+    MEDIUM
+    HIGH
+}
+
+enum RopaStatus {
+    DRAFT
+    PENDING_REVIEW
+    APPROVED
+    REJECTED
+    ACTIVE
+}
+
+enum RecordType {
+    CONTROLLER
+    PROCESSOR
+}
+
+enum DataSensitivityType {
+    GENERAL
+    SENSITIVE
+}
+
+enum CollectionFormat {
+    SOFT_FILE
+    HARD_COPY
+    BOTH
+}
+
+enum MinorConsent {
+    NONE
+    AGE_UNDER_10
+    AGE_10_20
+}
+
+// =====================
+// Models
+// =====================
+
+model Department {
+    id          Int          @id @default(autoincrement())
+    name        String       @unique
+    ropaRecords RopaRecord[]
+    users       User[]
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+}
+
+model Role {
+    id        Int      @id @default(autoincrement())
+    name      String   @unique // Admin, DataOwner, DPO, Auditor, Executive
+    users     User[]
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model User {
+    id           Int          @id @default(autoincrement())
+    username     String       @unique
+    email        String       @unique
+    name         String
+    password     String
+    enabled      Boolean      @default(true)
+    status       UserStatus   @default(OFFLINE)
+    lastActive   DateTime?
+    roleId       Int
+    role         Role         @relation(fields: [roleId], references: [id])
+    departmentId Int?
+    department   Department?  @relation(fields: [departmentId], references: [id])
+    auditLogs    AuditLog[]
+    createdRopa  RopaRecord[] @relation("CreatedBy")
+    updatedRopa  RopaRecord[] @relation("UpdatedBy")
+    rejectedRopa RopaRecord[] @relation("RejectedBy")
+    ropaHistory  RopaHistory[]
+    createdAt    DateTime     @default(now())
+    updatedAt    DateTime     @updatedAt
+
+    @@index([roleId])
+    @@index([departmentId])
+}
+
+model RopaRecord {
+    id                  Int                  @id @default(autoincrement())
+
+    // Record type: Controller or Processor (ตามแบบฟอร์ม)
+    recordType          RecordType           @default(CONTROLLER)
+
+    // Core ROPA (PDPA ม.39)
+    purpose             String               @db.Text // วัตถุประสงค์ของการประมวลผล
+    dataSubject         String               // ชื่อเจ้าของข้อมูล (Customer/Employee/...)
+    processingActivity  String?              @db.Text // กิจกรรมประมวลผล
+    personalDataItems   String?              @db.Text // ข้อมูลส่วนบุคคลที่จัดเก็บ
+    dataCategory        String               // หมวดหมู่ (Customer/Partner/Contact/Employee)
+    dataType            DataSensitivityType  @default(GENERAL) // ข้อมูลทั่วไป / อ่อนไหว
+
+    // Source & collection
+    collectionMethod    CollectionFormat?    // soft file / hard copy / both
+    sourceDirect        Boolean              @default(true) // จากเจ้าของโดยตรง
+    sourceIndirect      String?              @db.Text // จากแหล่งอื่น (ระบุ)
+    dataSource          String?              // แหล่งที่ได้มา (sum-up text)
+
+    // Lawful basis
+    legalBasis          LegalBasis           // ฐานในการประมวลผล
+    minorConsent        MinorConsent         @default(NONE) // ความยินยอมของผู้เยาว์ (Controller)
+
+    // Processor-specific
+    processorAddress    String?              @db.Text // ที่อยู่ผู้ควบคุมข้อมูล (Processor form)
+
+    // Recipient / third parties
+    recipient           String?              @db.Text
+    dataProcessor       String?              // ผู้ประมวลผลข้อมูลภายนอก
+
+    // Cross-border transfer (ข้อ 11 / 12)
+    transferExists      Boolean              @default(false)
+    transferDestination String?              // ประเทศปลายทาง
+    intraGroupTransfer  String?              @db.Text // กลุ่มบริษัทในเครือ
+    transferMethod      String?              @db.Text
+    destinationStandard String?              @db.Text
+    article28Exception  String?              @db.Text
+
+    // Retention policy (ข้อ 12 Controller / 12 Processor)
+    storageType         String?              // soft/hard
+    storageMethod       String?              @db.Text
+    retentionPeriod     String               // ระยะเวลา
+    exerciseOfRights    String?              @db.Text // สิทธิและวิธีการเข้าถึง
+    deletionMethod      String?              @db.Text
+
+    // Exemption & rejection (Controller only: ข้อ 13 / 14)
+    disclosureExempt    String?              @db.Text
+    rightsRejection     String?              @db.Text
+
+    // Security measures (ข้อ 15 Controller / ข้อ 13 Processor) - sub-measures
+    securityMeasures    String?              @db.Text // summary
+    organizationalMeasures String?           @db.Text
+    technicalMeasures   String?              @db.Text
+    physicalMeasures    String?              @db.Text
+    accessControl       String?              @db.Text
+    userResponsibility  String?              @db.Text
+    auditMeasure        String?              @db.Text
+
+    // Metadata
+    riskLevel           RiskLevel            @default(LOW)
+    status              RopaStatus           @default(DRAFT)
+    rejectionReason     String?              @db.Text
+    rejectedAt          DateTime?
+    rejectedById        Int?
+    rejectedBy          User?                @relation("RejectedBy", fields: [rejectedById], references: [id])
+    departmentId        Int?
+    department          Department?          @relation(fields: [departmentId], references: [id])
+    createdById         Int
+    createdBy           User                 @relation("CreatedBy", fields: [createdById], references: [id])
+    updatedById         Int?
+    updatedBy           User?                @relation("UpdatedBy", fields: [updatedById], references: [id])
+    importFileId        Int?
+    importFile          ImportFile?          @relation(fields: [importFileId], references: [id])
+    histories           RopaHistory[]
+    createdAt           DateTime             @default(now())
+    updatedAt           DateTime             @updatedAt
+
+    @@index([departmentId])
+    @@index([createdById])
+    @@index([updatedById])
+    @@index([importFileId])
+    @@index([status])
+    @@index([riskLevel])
+    @@index([recordType])
+    @@index([dataType])
+}
+
+model RopaHistory {
+    id           Int        @id @default(autoincrement())
+    ropaRecordId Int
+    ropaRecord   RopaRecord @relation(fields: [ropaRecordId], references: [id], onDelete: Cascade)
+    fieldName    String
+    oldValue     String?    @db.Text
+    newValue     String?    @db.Text
+    changedById  Int
+    changedBy    User       @relation(fields: [changedById], references: [id])
+    createdAt    DateTime   @default(now())
+
+    @@index([ropaRecordId])
+    @@index([changedById])
+}
+
+model AuditLog {
+    id          Int          @id @default(autoincrement())
+    userId      Int
+    user        User         @relation(fields: [userId], references: [id])
+    activity    ActivityType
+    description String       @db.Text
+    ipAddress   String
+    sensitivity Sensitivity  @default(LOW)
+    createdAt   DateTime     @default(now())
+
+    @@index([userId])
+    @@index([createdAt])
+    @@index([activity])
+}
+
+model ImportFile {
+    id          Int          @id @default(autoincrement())
+    fileName    String
+    filePath    String
+    fileSize    Int
+    status      ImportStatus @default(PENDING)
+    recordCount Int          @default(0)
+    ropaRecords RopaRecord[]
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+}

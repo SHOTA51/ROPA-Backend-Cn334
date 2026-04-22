@@ -1,0 +1,4 @@
+User : เพิ่ม department กับ enabled ( enabled คือ เปิด/ปืดการใช้งาน user มี 2 ค่า true กับ false เริ่มต้นเป็น true)
+
+import file : เพิ่มส่วน export file 
+dashboard : มันคือ file ที่ import มาใช่มั้ย ? ถ้าใช่เพิ่ม risklevel, recipient, status ( ค่าเริ่มต้น not watched ), dataSource ( ประเภทข้อมูล เช่น "แบบฟอร์มสมัครงาน")

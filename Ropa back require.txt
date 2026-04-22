@@ -1,0 +1,2 @@
+ต้องแบ่ง role ชัดเจน
+framework : nodejs react expressjs MySQL
