@@ -5,11 +5,23 @@ const morgan = require('morgan')
 const cors = require('cors')
 
 const { readdirSync } = require('fs')
-const corsOptions = {
-  origin: 'https://ropa-front.vercel.app', 
-  optionsSuccessStatus: 200
-};
 
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    process.env.FRONTEND_URL
+].filter(Boolean)
+
+const corsOptions = {
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true)
+        if (allowedOrigins.includes(origin)) return callback(null, true)
+        if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return callback(null, true)
+        return callback(new Error('Not allowed by CORS: ' + origin))
+    },
+    credentials: true,
+    optionsSuccessStatus: 200
+}
 
 app.use(morgan('dev'))
 app.use(express.json())
