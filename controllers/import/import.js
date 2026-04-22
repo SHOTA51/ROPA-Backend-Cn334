@@ -272,7 +272,7 @@ exports.importExcel = async (req, res) => {
                     userResponsibility: userResponsibility ? String(userResponsibility) : null,
                     auditMeasure: auditMeasure ? String(auditMeasure) : null,
                     riskLevel: mapEnum(RISK_MAP, pick(row, 'Risk Level', 'riskLevel', 'ระดับความเสี่ยง'), 'LOW'),
-                    status: 'DRAFT',
+                    status: 'PENDING_REVIEW',
                     departmentId: req.user.departmentId || null,
                     createdById: req.user.id,
                     importFileId: importFile.id

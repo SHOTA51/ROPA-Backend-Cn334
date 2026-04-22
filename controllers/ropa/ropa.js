@@ -172,7 +172,7 @@ exports.createRopa = async (req, res) => {
         const record = await prisma.ropaRecord.create({
             data: {
                 ...picked,
-                status: 'DRAFT',
+                status: 'PENDING_REVIEW',
                 departmentId,
                 createdById: req.user.id
             },
@@ -255,7 +255,7 @@ exports.updateRopa = async (req, res) => {
 exports.deleteRopa = async (req, res) => {
     try {
         const { id } = req.params
-        const { reason } = req.body
+        const { reason } = req.body || {}
 
         const record = await prisma.ropaRecord.findUnique({ where: { id: Number(id) } })
 
@@ -367,7 +367,7 @@ exports.approveRopa = async (req, res) => {
 exports.rejectRopa = async (req, res) => {
     try {
         const { id } = req.params
-        const { reason } = req.body
+        const { reason } = req.body || {}
 
         const record = await prisma.ropaRecord.findUnique({ where: { id: Number(id) } })
 
