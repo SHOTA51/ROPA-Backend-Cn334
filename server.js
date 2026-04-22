@@ -8,12 +8,16 @@ const { readdirSync } = require('fs')
 
 app.use(morgan('dev'))
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+  origin: 'https://vercel.app'
+}))
 
 // Auto-load all route files from ./routes
 readdirSync('./routes')
     .filter((item) => item.endsWith('.js'))
     .map((item) => app.use('/api', require('./routes/' + item)))
 
-app.listen(5000, () =>
-    console.log('Server Running on port 5000'))
+const PORT = process.env.PORT || 5000
+
+app.listen(PORT,'0.0.0.0', () =>
+    console.log(`Server Running on port ${PORT}`))
