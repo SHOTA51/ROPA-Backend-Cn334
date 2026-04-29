@@ -93,13 +93,13 @@ exports.importExcel = async (req, res) => {
         const errors = []
         const allRecords = []
 
-        // Process each sheet - use sheet name to detect Controller vs Processor
+        
         for (const sheetName of workbook.SheetNames) {
             const lower = sheetName.toLowerCase()
             if (lower.includes('example') || lower.includes('ตัวอย่าง')) continue
 
             const sheet = workbook.Sheets[sheetName]
-            // Try header row 8 (Controller) then 12 (Processor), else auto
+            
             let headerRow = 1
             if (lower.includes('controller') || lower.includes('ควบคุม')) headerRow = 8
             else if (lower.includes('processor') || lower.includes('ประมวลผล')) headerRow = 12
@@ -108,11 +108,11 @@ exports.importExcel = async (req, res) => {
                 ? 'PROCESSOR'
                 : 'CONTROLLER'
 
-            // Extract rows as array of arrays, then build flexible row objects
+            
             const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
             if (aoa.length === 0) continue
 
-            // If auto mode: use row 1 as header
+            
             let headers = aoa[headerRow - 1] || aoa[0]
             const dataStart = aoa.findIndex((row, i) => i > headerRow && row.some(cell => String(cell).trim() !== ''))
 
